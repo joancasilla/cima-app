@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CIMA APP — SEMS Ingeniería</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📦</text></svg>">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            sems:'#F7941D',semsD:'#D97B0A',semsL:'#FFF5E6',
+            negro:'#1A1A1A',negroL:'#2D2D2D',
+            surface:'#f8f9fa',border:'#e2e8f0',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .drop-activo{background-color:#FFF5E6 !important;border-color:#F7941D !important;}
+    @media screen{#area-impresion{display:none !important;}}
+    @media print{
+      body>*:not(#area-impresion){display:none !important;}
+      #area-impresion{display:block !important;}
+      @page{size:4in 6in;margin:0;}
+    }
+    .etiqueta{width:4in;height:6in;border:2px solid #000;display:flex;flex-direction:column;overflow:hidden;font-family:Arial,Helvetica,sans-serif;background:#fff;page-break-after:always;break-after:page;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .etiqueta:last-child{page-break-after:avoid;break-after:avoid;}
+    .et-pad{padding:0 6px;}.et-bord{border-bottom:1px solid #000;}
+    .et-row-id{height:24px;min-height:24px;font-size:7.5pt;display:flex;align-items:center;}
+    .et-row-apto{height:56px;min-height:56px;font-size:21pt;font-weight:bold;display:flex;align-items:center;}
+    .et-row-area{height:26px;min-height:26px;font-size:12pt;font-weight:bold;display:flex;align-items:center;}
+    .et-row2{display:flex;overflow:hidden;}
+    .et-row2 .et-l{flex:1;border-right:1px solid #000;display:flex;align-items:center;overflow:hidden;}
+    .et-row2 .et-r{flex:1;display:flex;align-items:center;overflow:hidden;}
+    .et-row-ed{height:26px;min-height:26px;}
+    .et-row-ed .et-l,.et-row-ed .et-r{font-size:10pt;font-weight:bold;}
+    .et-row-ac{height:36px;min-height:36px;}
+    .et-row-ac .et-l,.et-row-ac .et-r{font-size:9pt;align-items:flex-start;padding-top:3px;white-space:pre-wrap;word-break:break-word;}
+    .et-row-kt{height:32px;min-height:32px;}
+    .et-row-kt .et-l{font-size:15pt;font-weight:bold;}
+    .et-row-kt .et-r{font-size:9pt;justify-content:flex-end;}
+    .et-sp{height:4px;min-height:4px;flex-shrink:0;}
+    .et-row-ti{height:18px;min-height:18px;font-size:9pt;font-weight:bold;font-style:italic;display:flex;align-items:center;}
+    .et-row-co{flex:1;display:flex;min-height:0;overflow:hidden;}
+    .et-row-co .et-det{flex:1;border-right:1px solid #000;font-size:6.5pt;white-space:pre-line;padding:2px 5px;overflow:hidden;line-height:1.15;}
+    .et-row-co .et-qr{width:125px;min-width:125px;display:flex;align-items:center;justify-content:center;}
+    .et-row-co .et-qr img{width:115px;height:115px;}
+    .et-row-fe{height:22px;min-height:22px;display:flex;}
+    .et-row-fe .et-l,.et-row-fe .et-r{font-size:8pt;display:flex;align-items:center;}
+    .et-row-fo{height:56px;min-height:56px;display:flex;border-top:1px solid #000;}
+    .et-row-fo .et-logo{width:70px;min-width:70px;border-right:1px solid #000;display:flex;align-items:center;justify-content:center;padding:2px;overflow:hidden;}
+    .et-row-fo .et-logo img{max-height:48px;max-width:100%;object-fit:contain;}
+    .et-row-fo .et-cima{flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 5px;border-right:1px solid #000;overflow:hidden;}
+    .et-row-fo .et-cima-title{font-size:9pt;font-weight:bold;color:#F7941D;line-height:1.1;}
+    .et-row-fo .et-cima-sub{font-size:5.5pt;color:#555;line-height:1.1;}
+    .et-row-fo .et-proy{flex:1;font-size:12pt;font-weight:bold;display:flex;align-items:center;justify-content:flex-end;padding:0 5px;}
+    .tab-btn{padding:0.625rem 1.25rem;font-size:0.875rem;font-weight:600;border-radius:0.5rem 0.5rem 0 0;transition:color .15s,background .15s;}
+    .tab-activa{background:white;color:#F7941D;border:1px solid #e2e8f0;border-bottom-color:white;margin-bottom:-1px;}
+    .tab-inactiva{color:#6b7280;background:transparent;border:1px solid transparent;}
+    .tab-inactiva:not(:disabled):hover{color:#374151;}
+    .tab-btn:disabled{opacity:0.45;cursor:not-allowed;}
+  </style>
+</head>
+<body class="bg-surface min-h-screen text-gray-800">
+
+  <!-- ═══════ NAVBAR ═══════ -->
+  <nav class="bg-negro text-white shadow-md print:hidden">
+    <div class="max-w-7xl mx-auto px-4 py-2.5 flex items-center gap-4">
+      <img id="nav-logo" src="" alt="SEMS" class="h-9 object-contain">
+      <div class="w-px h-8 bg-gray-600"></div>
+      <div class="flex flex-col">
+        <span class="text-base font-bold tracking-wide text-sems leading-tight">CIMA</span>
+        <span class="text-[10px] text-gray-400 leading-tight hidden sm:block">Construcción Industrializada y Montaje Ágil</span>
+      </div>
+      <div class="flex-1"></div>
+      <span id="api-status" class="text-[10px] px-2 py-0.5 rounded-full bg-gray-700 text-gray-400 hidden md:inline">Conectando...</span>
+    </div>
+  </nav>
+
+  <main class="max-w-7xl mx-auto px-4 py-8 print:hidden">
+    <div class="flex gap-1 mb-6 border-b border-border">
+      <button id="tab-carga" onclick="cambiarTab('carga')" class="tab-btn tab-activa">1. Carga</button>
+      <button id="tab-mapeo" onclick="cambiarTab('mapeo')" class="tab-btn tab-inactiva" disabled>2. Mapeo</button>
+      <button id="tab-preview" onclick="cambiarTab('preview')" class="tab-btn tab-inactiva" disabled>3. Kits</button>
+      <button id="tab-impresion" onclick="cambiarTab('impresion')" class="tab-btn tab-inactiva" disabled>4. Impresión</button>
+    </div>
+
+    <!-- TAB 1 -->
+    <section id="vista-carga">
+      <div class="bg-white rounded-xl shadow-sm border border-border p-6 max-w-2xl mx-auto">
+        <h2 class="text-xl font-bold mb-1">Subir archivo de materiales</h2>
+        <p class="text-sm text-gray-500 mb-5">Arrastra un archivo .xlsx o .csv, o haz clic para seleccionarlo.</p>
+        <div id="zona-drop" class="border-2 border-dashed border-gray-300 rounded-xl p-10 flex flex-col items-center justify-center gap-3 cursor-pointer transition-colors hover:border-sems hover:bg-orange-50/40">
+          <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
+          <span class="text-gray-500 text-sm font-medium">Arrastra tu archivo aquí</span>
+          <span class="text-xs text-gray-400">o haz clic para buscar</span>
+          <input id="input-archivo" type="file" accept=".xlsx,.xls,.csv" class="hidden">
+        </div>
+        <div id="info-archivo" class="hidden mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between">
+          <div class="flex items-center gap-2"><svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg><span id="nombre-archivo" class="text-sm font-medium text-green-800"></span></div>
+          <button onclick="reiniciarCarga()" class="text-xs text-red-500 hover:text-red-700 font-medium">Quitar</button>
+        </div>
+        <div id="selector-hoja" class="hidden mt-4"><label class="block text-sm font-medium text-gray-700 mb-1">Selecciona la hoja de datos:</label><select id="select-hoja" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sems focus:border-sems outline-none"></select></div>
+        <button id="btn-procesar" onclick="procesarArchivo()" class="hidden mt-5 w-full bg-sems hover:bg-semsD text-white font-semibold py-2.5 rounded-lg transition-colors">Continuar al mapeo de columnas →</button>
+        <div class="mt-6 pt-5 border-t border-border text-center">
+          <p class="text-xs text-gray-400 mb-2">¿No tienes un archivo con el formato correcto?</p>
+          <button onclick="descargarPlantilla()" class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:border-sems hover:text-sems transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+            Descargar plantilla de Excel</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2 -->
+    <section id="vista-mapeo" class="hidden">
+      <div class="bg-white rounded-xl shadow-sm border border-border p-6 max-w-4xl mx-auto">
+        <h2 class="text-xl font-bold mb-1">Mapeo de columnas</h2>
+        <p class="text-sm text-gray-500 mb-5">Confirma qué columna corresponde a cada dato.</p>
+        <div id="alerta-mapeo" class="mb-5 p-3 rounded-lg text-sm flex items-start gap-2"></div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6" id="grid-mapeo"></div>
+        <details class="mb-5"><summary class="text-sm font-medium text-sems cursor-pointer hover:underline">Ver primeras filas del archivo</summary><div class="overflow-x-auto mt-2 rounded-lg border border-border max-h-56 overflow-y-auto"><table id="tabla-mini" class="w-full text-xs text-left"><thead id="thead-mini" class="bg-gray-50 text-gray-500 uppercase sticky top-0"></thead><tbody id="tbody-mini" class="divide-y divide-border"></tbody></table></div></details>
+        <div class="flex gap-3">
+          <button onclick="cambiarTab('carga')" class="px-5 py-2.5 border border-border rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50">← Volver</button>
+          <button onclick="ejecutarAgrupacion()" class="flex-1 bg-sems hover:bg-semsD text-white font-semibold py-2.5 rounded-lg transition-colors">Agrupar Kits →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3 -->
+    <section id="vista-preview" class="hidden">
+      <div class="bg-white rounded-xl shadow-sm border border-border p-6">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-5">
+          <div><h2 class="text-xl font-bold">Kits agrupados</h2><p id="resumen-grupos" class="text-sm text-gray-500 mt-0.5"></p></div>
+          <div class="flex gap-2"><button onclick="cambiarTab('mapeo')" class="px-4 py-2 border border-border rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50">← Remapear</button><button onclick="cambiarTab('impresion')" class="px-4 py-2 bg-sems hover:bg-semsD text-white text-sm font-semibold rounded-lg transition-colors">Ir a Impresión →</button></div>
+        </div>
+        <div id="contenedor-grupos" class="space-y-3"></div>
+      </div>
+    </section>
+
+    <!-- TAB 4 -->
+    <section id="vista-impresion" class="hidden">
+      <div class="bg-white rounded-xl shadow-sm border border-border p-6">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-5">
+          <div><h2 class="text-xl font-bold">Impresión de Etiquetas</h2><p id="resumen-impresion" class="text-sm text-gray-500 mt-0.5"></p></div>
+          <button onclick="cambiarTab('preview')" class="px-4 py-2 border border-border rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50">← Volver a Kits</button>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5 p-4 bg-gray-50 rounded-xl border border-border">
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Nombre del proyecto</label><input id="cfg-proyecto" type="text" value="Prado Suites PP" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sems focus:border-sems outline-none"></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">ID del proyecto (prefijo)</label><input id="cfg-prefijo" type="text" value="PRADO" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sems focus:border-sems outline-none"></div>
+        </div>
+        <div class="mb-5">
+          <div class="flex items-center justify-between mb-2"><span class="text-sm font-medium text-gray-700">Selecciona los grupos a imprimir:</span><div class="flex gap-2"><button onclick="seleccionarTodosGrupos(true)" class="text-xs text-sems hover:underline font-medium">Todos</button><span class="text-gray-300">|</span><button onclick="seleccionarTodosGrupos(false)" class="text-xs text-sems hover:underline font-medium">Ninguno</button></div></div>
+          <div id="filtro-grupos" class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto p-3 border border-border rounded-xl bg-white"></div>
+          <p id="conteo-etiquetas" class="text-sm text-gray-500 mt-2"></p>
+        </div>
+        <button onclick="imprimirEtiquetas()" class="w-full bg-sems hover:bg-semsD text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-base">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0021 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 00-1.913-.247M6.34 18H5.25A2.25 2.25 0 013 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 011.913-.247m10.5 0a48.536 48.536 0 00-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5zm-3 0h.008v.008H15V10.5z"/></svg>
+          Imprimir Etiquetas Seleccionadas</button>
+        <div id="estado-impresion" class="hidden mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2"><svg class="w-5 h-5 text-green-600 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg><span id="estado-impresion-texto" class="text-sm text-green-800"></span></div>
+        <details class="mt-5"><summary class="text-sm font-medium text-sems cursor-pointer hover:underline">Vista previa de la primera etiqueta</summary><div id="preview-etiqueta" class="mt-3 flex justify-center"></div></details>
+        <div class="mt-5 p-4 bg-orange-50 border border-orange-200 rounded-xl text-sm text-orange-800">
+          <p class="font-semibold mb-1">Instrucciones de impresión:</p>
+          <ol class="list-decimal list-inside space-y-0.5 text-xs"><li>Al presionar el botón se abrirá el diálogo de impresión.</li><li>Tamaño de papel: <b>4 × 6 pulgadas</b> (10 × 15 cm).</li><li>Márgenes: <b>Ninguno</b>.</li><li>Desactiva encabezados y pies de página del navegador.</li><li>Escala: <b>100%</b>.</li></ol>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="area-impresion"></div>
+
+  <script>
+  // ══════════════════════════════════════════════════════════════
+  // CONFIGURACIÓN — EDITA ESTAS DOS CONSTANTES
+  // ══════════════════════════════════════════════════════════════
+
+  // 1) URL del Apps Script desplegado como Web App
+  //    Pega aquí tu URL después de hacer Deploy → Web App en Apps Script
+  const API_APPS_SCRIPT = 'https://script.google.com/macros/s/PEGA_TU_ID_AQUI/exec';
+
+  // 2) Logo SEMS en Base64 — reemplaza con tu string real
+  const LOGO_SEMS = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAAAoCAYAAAAIeF9DAAAA...REEMPLAZA_CON_TU_BASE64_REAL...END';
+
+  // ══════════════════════════════════════════════════════════════
+  // ESTADO GLOBAL
+  // ══════════════════════════════════════════════════════════════
+  let libroExcel=null,datosHoja=[],nombresHojas=[],filaEncabezado=0;
+  let gruposKit=[],mapeoColumnas={},gruposImpresos={};
+
+  const CAMPOS_REQUERIDOS=[
+    {id:'codigo',label:'Código',sinonimos:['codigo','código','codigos','cod','referencia','ref','referencia interna'],requerido:false},
+    {id:'edificio',label:'Edificio',sinonimos:['edificio','edif'],requerido:false},
+    {id:'nivel',label:'Nivel',sinonimos:['nivel','piso','floor'],requerido:false},
+    {id:'sistema',label:'Sistema',sinonimos:['sistema','sist'],requerido:false},
+    {id:'apartamento',label:'Apartamento / Tipo',sinonimos:['apartamento','apto','tipo','apartment'],requerido:false},
+    {id:'area',label:'Área / Actividad',sinonimos:['area','área','actividad','zona'],requerido:false},
+    {id:'material',label:'Material',sinonimos:['material','descripcion','descripción','detalle'],requerido:true},
+    {id:'cantidad',label:'Cantidad unitaria',sinonimos:['cantidad unitaria','cant. unitaria','cant unitaria','cantidad','cant'],requerido:true},
+    {id:'unidad',label:'Unidad',sinonimos:['unidad','und','uom','um','unidad de medida'],requerido:false},
+    {id:'cantEmpacar',label:'Cantidad a empacar',sinonimos:['cantidad a empacar','cantida a empacar','cant empacar','cant. a empacar','empacar','paquetes'],requerido:true},
+  ];
+
+  // ══════════════════════════════════════════════════════════════
+  // API — Comunicación con Google Apps Script
+  // ══════════════════════════════════════════════════════════════
+  async function llamarAPI(accion, datos) {
+    try {
+      const resp = await fetch(API_APPS_SCRIPT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ accion, datos }),
+        redirect: 'follow',
+      });
+      return await resp.json();
+    } catch (e) {
+      console.warn('Error API:', e);
+      return { error: true, mensaje: e.message };
+    }
+  }
+
+  // Verificar conexión al cargar
+  (async function(){
+    const el = document.getElementById('api-status');
+    try {
+      const r = await llamarAPI('ping', {});
+      if (r && r.status === 'ok') {
+        el.textContent = '● Conectado';
+        el.className = 'text-[10px] px-2 py-0.5 rounded-full bg-green-900/40 text-green-400 hidden md:inline';
+      } else throw new Error('No ok');
+    } catch(e) {
+      el.textContent = '○ Sin conexión API';
+      el.className = 'text-[10px] px-2 py-0.5 rounded-full bg-red-900/40 text-red-400 hidden md:inline';
+    }
+  })();
+
+  // Logo
+  document.getElementById('nav-logo').src = LOGO_SEMS;
+
+  // ══════════════════════════════════════════════════════════════
+  // PESTAÑAS
+  // ══════════════════════════════════════════════════════════════
+  const TABS=['carga','mapeo','preview','impresion'];
+  function cambiarTab(tab){
+    TABS.forEach(t=>{document.getElementById('vista-'+t).classList.toggle('hidden',t!==tab);const btn=document.getElementById('tab-'+t);btn.className=t===tab?'tab-btn tab-activa':'tab-btn tab-inactiva';if(t===tab)btn.disabled=false;});
+    if(tab==='impresion'&&gruposKit.length){construirFiltroImpresion();actualizarPreviewEtiqueta();}
+    if(tab==='preview'&&gruposKit.length)renderGrupos();
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // PLANTILLA
+  // ══════════════════════════════════════════════════════════════
+  function descargarPlantilla(){
+    const enc=CAMPOS_REQUERIDOS.map(c=>c.label);const ws=XLSX.utils.aoa_to_sheet([enc]);ws['!cols']=enc.map(h=>({wch:Math.max(h.length+4,16)}));
+    const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Datos');XLSX.writeFile(wb,'Plantilla_Preempacado_CIMA.xlsx');
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // TAB 1: CARGA
+  // ══════════════════════════════════════════════════════════════
+  const zonaDrop=document.getElementById('zona-drop'),inputArchivo=document.getElementById('input-archivo');
+  zonaDrop.addEventListener('click',()=>inputArchivo.click());
+  zonaDrop.addEventListener('dragover',e=>{e.preventDefault();zonaDrop.classList.add('drop-activo');});
+  zonaDrop.addEventListener('dragleave',()=>zonaDrop.classList.remove('drop-activo'));
+  zonaDrop.addEventListener('drop',e=>{e.preventDefault();zonaDrop.classList.remove('drop-activo');if(e.dataTransfer.files.length)manejarArchivo(e.dataTransfer.files[0]);});
+  inputArchivo.addEventListener('change',e=>{if(e.target.files.length)manejarArchivo(e.target.files[0]);});
+
+  function manejarArchivo(archivo){
+    const ext=archivo.name.substring(archivo.name.lastIndexOf('.')).toLowerCase();
+    if(!['.xlsx','.xls','.csv'].includes(ext)){alert('Formato no soportado.');return;}
+    const lector=new FileReader();lector.onload=function(e){
+      libroExcel=XLSX.read(new Uint8Array(e.target.result),{type:'array'});nombresHojas=libroExcel.SheetNames;
+      document.getElementById('nombre-archivo').textContent=archivo.name;document.getElementById('info-archivo').classList.remove('hidden');document.getElementById('btn-procesar').classList.remove('hidden');
+      const sel=document.getElementById('select-hoja');sel.innerHTML='';
+      if(nombresHojas.length>1){nombresHojas.forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;sel.appendChild(o);});document.getElementById('selector-hoja').classList.remove('hidden');}
+      else document.getElementById('selector-hoja').classList.add('hidden');
+    };lector.readAsArrayBuffer(archivo);
+  }
+
+  function reiniciarCarga(){
+    libroExcel=null;datosHoja=[];nombresHojas=[];gruposKit=[];gruposImpresos={};inputArchivo.value='';
+    document.getElementById('info-archivo').classList.add('hidden');document.getElementById('selector-hoja').classList.add('hidden');
+    document.getElementById('btn-procesar').classList.add('hidden');document.getElementById('estado-impresion').classList.add('hidden');
+    ['mapeo','preview','impresion'].forEach(t=>document.getElementById('tab-'+t).disabled=true);
+  }
+
+  function procesarArchivo(){
+    if(!libroExcel){alert('Primero sube un archivo.');return;}
+    const nh=nombresHojas.length>1?document.getElementById('select-hoja').value:nombresHojas[0];
+    datosHoja=XLSX.utils.sheet_to_json(libroExcel.Sheets[nh],{header:1,defval:''});
+    if(datosHoja.length<2){alert('Hoja sin datos suficientes.');return;}
+    detectarEncabezado();construirMapeo();renderMiniPreview();document.getElementById('tab-mapeo').disabled=false;cambiarTab('mapeo');
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // TAB 2: MAPEO
+  // ══════════════════════════════════════════════════════════════
+  function detectarEncabezado(){filaEncabezado=0;for(let i=0;i<Math.min(datosHoja.length,20);i++){const t=datosHoja[i].map(c=>String(c).toLowerCase().trim()).join('|');if(t.includes('material')&&(t.includes('codigo')||t.includes('código')||t.includes('codigos')||t.includes('edificio')||t.includes('cantidad')||t.includes('unidad'))){filaEncabezado=i;break;}}}
+
+  function construirMapeo(){
+    const enc=datosHoja[filaEncabezado].map(c=>String(c).trim());mapeoColumnas={};let det=0;
+    CAMPOS_REQUERIDOS.forEach(campo=>{let idx=-1;for(let i=0;i<enc.length;i++){const h=enc[i].toLowerCase().replace(/[^a-záéíóúñü0-9\s]/g,'').trim();for(const s of campo.sinonimos){if(h===s||h.includes(s)){idx=i;break;}}if(idx>=0)break;}if(idx>=0){mapeoColumnas[campo.id]=idx;det++;}});
+    const grid=document.getElementById('grid-mapeo');grid.innerHTML='';
+    CAMPOS_REQUERIDOS.forEach(campo=>{const ci=mapeoColumnas[campo.id];const d=document.createElement('div');const l=document.createElement('label');l.className='block text-sm font-medium text-gray-700 mb-1';l.textContent=campo.label+(campo.requerido?' *':'');const s=document.createElement('select');s.id='mapeo-'+campo.id;s.className='w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sems focus:border-sems outline-none '+(ci!==undefined?'border-green-400 bg-green-50':(campo.requerido?'border-red-300 bg-red-50':'border-gray-300'));s.onchange=actualizarMapeoDesdeUI;const ov=document.createElement('option');ov.value='-1';ov.textContent='— No asignada —';s.appendChild(ov);enc.forEach((h,i)=>{if(!h)return;const o=document.createElement('option');o.value=i;o.textContent=letraColumna(i)+': '+h;if(ci===i)o.selected=true;s.appendChild(o);});d.appendChild(l);d.appendChild(s);grid.appendChild(d);});
+    const al=document.getElementById('alerta-mapeo'),tot=CAMPOS_REQUERIDOS.length;
+    if(det===tot){al.className='mb-5 p-3 rounded-lg text-sm flex items-start gap-2 bg-green-50 border border-green-200 text-green-800';al.innerHTML='<span class="text-lg">✓</span> Se detectaron las '+tot+' columnas automáticamente.';}
+    else{al.className='mb-5 p-3 rounded-lg text-sm flex items-start gap-2 bg-amber-50 border border-amber-200 text-amber-800';al.innerHTML='<span class="text-lg">⚠</span> Se detectaron '+det+' de '+tot+'. Asigna las faltantes (* = obligatorio).';}
+  }
+
+  function actualizarMapeoDesdeUI(){mapeoColumnas={};CAMPOS_REQUERIDOS.forEach(c=>{const v=parseInt(document.getElementById('mapeo-'+c.id).value);if(v>=0)mapeoColumnas[c.id]=v;});}
+
+  function renderMiniPreview(){const enc=datosHoja[filaEncabezado],mx=Math.min(enc.length,12);document.getElementById('thead-mini').innerHTML='<tr>'+enc.slice(0,mx).map((c,i)=>'<th class="px-2 py-1.5 whitespace-nowrap bg-gray-50">'+letraColumna(i)+': '+esc(c)+'</th>').join('')+'</tr>';document.getElementById('tbody-mini').innerHTML=datosHoja.slice(filaEncabezado+1,filaEncabezado+16).map(f=>'<tr>'+f.slice(0,mx).map(c=>'<td class="px-2 py-1 whitespace-nowrap">'+esc(c)+'</td>').join('')+'</tr>').join('');}
+
+  // ══════════════════════════════════════════════════════════════
+  // AGRUPACIÓN HÍBRIDA
+  // ══════════════════════════════════════════════════════════════
+  function ejecutarAgrupacion(){
+    actualizarMapeoDesdeUI();const falt=CAMPOS_REQUERIDOS.filter(c=>c.requerido&&mapeoColumnas[c.id]===undefined);
+    if(falt.length){alert('Faltan campos obligatorios:\n'+falt.map(f=>'• '+f.label).join('\n'));return;}
+    const col=mapeoColumnas,filas=datosHoja.slice(filaEncabezado+1);gruposKit=[];gruposImpresos={};const mapaPlano={};let grupoActual=null;
+
+    for(let i=0;i<filas.length;i++){
+      const fila=filas[i];
+      const codigo=col.codigo!==undefined?String(fila[col.codigo]??'').trim():'';
+      const material=String(fila[col.material]??'').trim();
+      const cantEmpacar=Number(fila[col.cantEmpacar]||0);
+      const cantUnit=Number(fila[col.cantidad]||0);
+      const unidad=col.unidad!==undefined?String(fila[col.unidad]??'').trim():'';
+      const edificio=col.edificio!==undefined?String(fila[col.edificio]??'').trim():'';
+      const nivel=col.nivel!==undefined?String(fila[col.nivel]??'').trim():'';
+      const sistema=col.sistema!==undefined?String(fila[col.sistema]??'').trim():'';
+      const apartamento=col.apartamento!==undefined?String(fila[col.apartamento]??'').trim():'';
+      const area=col.area!==undefined?String(fila[col.area]??'').trim():'';
+
+      if(!codigo&&material&&cantEmpacar>0){grupoActual={nombre:material,edificio:'',nivel:'',sistema:'',apartamento:'',area:'',cantEmpacar,items:[],esAntiguo:true};gruposKit.push(grupoActual);continue;}
+      if(!codigo&&!material&&cantEmpacar>0&&grupoActual&&grupoActual.esAntiguo&&grupoActual.cantEmpacar===0){grupoActual.cantEmpacar=cantEmpacar;continue;}
+
+      if(codigo||(material&&cantUnit>0)){
+        if(grupoActual&&grupoActual.esAntiguo){grupoActual.items.push({codigo,material,cantUnitaria:cantUnit,unidad});if(!grupoActual.edificio&&edificio)grupoActual.edificio=edificio;if(!grupoActual.nivel&&nivel)grupoActual.nivel=nivel;if(!grupoActual.sistema&&sistema)grupoActual.sistema=sistema;if(!grupoActual.apartamento&&apartamento)grupoActual.apartamento=apartamento;if(!grupoActual.area&&area)grupoActual.area=area;continue;}
+        const clave=(apartamento+'||'+area).toLowerCase().trim();
+        if(clave&&clave!=='||'){
+          if(mapaPlano[clave]!==undefined){const gEx=gruposKit[mapaPlano[clave]];gEx.items.push({codigo,material,cantUnitaria:cantUnit,unidad});if(cantEmpacar>0&&gEx.cantEmpacar===0)gEx.cantEmpacar=cantEmpacar;}
+          else{const nombreGrupo=[apartamento,area].filter(Boolean).join(' — ');const ng={nombre:nombreGrupo,edificio,nivel,sistema,apartamento,area,cantEmpacar:cantEmpacar>0?cantEmpacar:1,items:[{codigo,material,cantUnitaria:cantUnit,unidad}],esAntiguo:false};mapaPlano[clave]=gruposKit.length;gruposKit.push(ng);}
+        }
+      }
+    }
+    gruposKit=gruposKit.filter(g=>g.items.length>0);
+    if(!gruposKit.length){alert('No se encontraron grupos.\n\nVerifica que:\n• Las filas tengan material y cantidad.\n• Formato antiguo: encabezados sin código con cantEmpacar > 0.\n• Plantilla plana: columnas Apartamento y Área mapeadas.');return;}
+    const tk=gruposKit.reduce((s,g)=>s+g.cantEmpacar,0),ti=gruposKit.reduce((s,g)=>s+g.items.length,0);
+    renderGrupos();document.getElementById('resumen-grupos').textContent=gruposKit.length+' grupos · '+ti+' materiales · '+tk+' etiquetas';
+    document.getElementById('tab-preview').disabled=false;document.getElementById('tab-impresion').disabled=false;cambiarTab('preview');
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // TAB 3: ACORDEÓN
+  // ══════════════════════════════════════════════════════════════
+  function renderGrupos(){
+    const cont=document.getElementById('contenedor-grupos');cont.innerHTML='';
+    gruposKit.forEach((g,idx)=>{const imp=gruposImpresos[idx];const card=document.createElement('div');card.className='border rounded-xl overflow-hidden '+(imp?'border-green-300 bg-green-50/30':'border-border');const header=document.createElement('button');header.className='w-full flex items-center justify-between px-4 py-3 hover:bg-gray-100 transition-colors text-left '+(imp?'bg-green-50':'bg-gray-50');const bi=imp?'<span class="text-xs font-medium bg-green-600 text-white rounded-full px-2.5 py-0.5">✓ Impreso</span>':'';header.innerHTML='<div class="flex-1 min-w-0"><span class="font-bold text-sm '+(imp?'text-green-700':'text-sems')+'">'+esc(g.nombre)+'</span><span class="text-xs text-gray-500 ml-3">'+[g.sistema,g.apartamento?'Apto '+g.apartamento:'',g.area].filter(Boolean).join(' · ')+'</span></div><div class="flex items-center gap-2 shrink-0 ml-3">'+bi+'<span class="text-xs font-medium bg-negro text-white rounded-full px-2.5 py-0.5">'+g.items.length+' mat.</span><span class="text-xs font-medium bg-sems text-white rounded-full px-2.5 py-0.5">'+g.cantEmpacar+' kits</span><svg class="w-4 h-4 text-gray-400 transform transition-transform icono-expand" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></div>';const body=document.createElement('div');body.className='hidden';body.innerHTML='<div class="px-4 py-2 bg-orange-50/60 text-xs text-gray-600 flex flex-wrap gap-x-6 gap-y-1">'+[g.edificio&&'<span><b>Edificio:</b> '+esc(g.edificio)+'</span>',g.nivel&&'<span><b>Nivel:</b> '+esc(g.nivel)+'</span>',g.sistema&&'<span><b>Sistema:</b> '+esc(g.sistema)+'</span>',g.apartamento&&'<span><b>Apto:</b> '+esc(g.apartamento)+'</span>',g.area&&'<span><b>Área:</b> '+esc(g.area)+'</span>','<span><b>Empacar:</b> '+g.cantEmpacar+' paq.</span>'].filter(Boolean).join('')+'</div><table class="w-full text-sm"><thead><tr class="bg-gray-50 text-xs text-gray-500 uppercase"><th class="px-4 py-2 text-left">#</th><th class="px-4 py-2 text-left">Código</th><th class="px-4 py-2 text-left">Material</th><th class="px-4 py-2 text-right">Cant.</th><th class="px-4 py-2 text-left">Unidad</th></tr></thead><tbody class="divide-y divide-border">'+g.items.map((it,j)=>'<tr class="hover:bg-gray-50"><td class="px-4 py-1.5 text-gray-400 text-xs">'+(j+1)+'</td><td class="px-4 py-1.5 font-mono text-xs">'+esc(it.codigo)+'</td><td class="px-4 py-1.5">'+esc(it.material)+'</td><td class="px-4 py-1.5 text-right font-medium">'+it.cantUnitaria+'</td><td class="px-4 py-1.5 text-gray-500">'+esc(it.unidad)+'</td></tr>').join('')+'</tbody></table>';header.addEventListener('click',()=>{body.classList.toggle('hidden');header.querySelector('.icono-expand').style.transform=body.classList.contains('hidden')?'':'rotate(180deg)';});card.appendChild(header);card.appendChild(body);cont.appendChild(card);});
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // TAB 4: IMPRESIÓN
+  // ══════════════════════════════════════════════════════════════
+  function construirFiltroImpresion(){const cont=document.getElementById('filtro-grupos');cont.innerHTML='';gruposKit.forEach((g,i)=>{const imp=gruposImpresos[i];const label=document.createElement('label');label.className='flex items-center gap-2 p-2 rounded-lg cursor-pointer '+(imp?'bg-green-50 hover:bg-green-100':'hover:bg-gray-50');label.innerHTML='<input type="checkbox" '+(imp?'':'checked')+' data-grupo-idx="'+i+'" onchange="actualizarConteoEtiquetas()" class="w-4 h-4 rounded border-gray-300 text-sems focus:ring-sems"><span class="text-sm flex-1 min-w-0 truncate">'+esc(g.nombre)+'</span>'+(imp?'<span class="text-xs text-green-600 font-medium shrink-0">✓</span>':'')+'<span class="text-xs text-gray-400 shrink-0">'+g.cantEmpacar+' kits</span>';cont.appendChild(label);});actualizarConteoEtiquetas();}
+
+  function seleccionarTodosGrupos(e){document.querySelectorAll('#filtro-grupos input[type=checkbox]').forEach(cb=>cb.checked=e);actualizarConteoEtiquetas();}
+  function actualizarConteoEtiquetas(){const t=obtenerGruposSeleccionados().reduce((s,o)=>s+o.grupo.cantEmpacar,0);document.getElementById('conteo-etiquetas').textContent=t+' etiquetas serán generadas.';document.getElementById('resumen-impresion').textContent=t+' etiquetas de '+gruposKit.length+' grupos';actualizarPreviewEtiqueta();}
+  function obtenerGruposSeleccionados(){const r=[];document.querySelectorAll('#filtro-grupos input[type=checkbox]:checked').forEach(cb=>{const i=parseInt(cb.dataset.grupoIdx);r.push({idx:i,grupo:gruposKit[i]});});return r;}
+  function actualizarPreviewEtiqueta(){const p=document.getElementById('preview-etiqueta'),s=obtenerGruposSeleccionados();if(!s.length){p.innerHTML='<p class="text-sm text-gray-400">Ningún grupo seleccionado.</p>';return;}p.innerHTML=generarHtmlEtiqueta(s[0].grupo,1,s[0].grupo.cantEmpacar,1);}
+
+  function generarHtmlEtiqueta(grupo,kitNum,kitTotal,secuencia){
+    const prefijo=(document.getElementById('cfg-prefijo').value.trim()||'CIMA').toUpperCase();const proyecto=document.getElementById('cfg-proyecto').value.trim()||'Proyecto';
+    const limpiar=(s,n)=>String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'').substring(0,n);
+    const idKit=prefijo+'-'+limpiar(grupo.nombre,8)+'-'+String(secuencia).padStart(3,'0')+'-'+String(kitNum).padStart(2,'0');
+    const detalle=grupo.items.map(it=>it.cantUnitaria+' '+it.unidad+'  |  '+it.material).join('\n');
+    const qrTexto='ID: '+idKit+'\nKit: '+kitNum+' de '+kitTotal+'\nGrupo: '+grupo.nombre+'\nSistema: '+grupo.sistema+'\nEdificio: '+grupo.edificio+'\nNivel: '+grupo.nivel+'\nApto: '+grupo.apartamento+'\nArea: '+grupo.area+'\nEmpacar: '+kitTotal+' paquetes';
+    const qrUrl='https://quickchart.io/qr?text='+encodeURIComponent(qrTexto)+'&size=240&margin=1';
+    const hoy=new Date();const fecha=String(hoy.getDate()).padStart(2,'0')+'/'+String(hoy.getMonth()+1).padStart(2,'0')+'/'+hoy.getFullYear();
+    const logoTag=LOGO_SEMS&&LOGO_SEMS.length>100?'<img src="'+LOGO_SEMS+'" alt="SEMS">':'<span style="font-weight:bold;font-size:9pt;color:#333">SEMS</span>';
+    return '<div class="etiqueta"><div class="et-row-id et-bord et-pad">'+esc(idKit)+'</div><div class="et-row-apto et-bord et-pad">Apto: '+esc(grupo.apartamento)+'</div><div class="et-row-area et-bord et-pad">Area: '+esc(grupo.area)+'</div><div class="et-row2 et-row-ed et-bord"><div class="et-l et-pad">Edificio: '+esc(grupo.edificio)+'</div><div class="et-r et-pad">'+esc(grupo.sistema)+'</div></div><div class="et-row2 et-row-ac et-bord"><div class="et-l et-pad">Actividad: '+esc(grupo.nombre)+'</div><div class="et-r et-pad">Nivel: '+esc(grupo.nivel)+'</div></div><div class="et-row2 et-row-kt et-bord"><div class="et-l et-pad">Kit '+kitNum+' de '+kitTotal+'</div><div class="et-r et-pad">Empacar: '+kitTotal+' paquetes</div></div><div class="et-sp"></div><div class="et-row-ti et-bord et-pad">Contenido del empaque</div><div class="et-row-co et-bord"><div class="et-det et-pad">'+esc(detalle)+'</div><div class="et-qr"><img src="'+qrUrl+'" alt="QR"></div></div><div class="et-sp"></div><div class="et-row-fe et-bord"><div class="et-l et-pad">Fecha: '+fecha+'</div><div class="et-r et-pad">Responsable:</div></div><div class="et-row-fo"><div class="et-logo">'+logoTag+'</div><div class="et-cima"><span class="et-cima-title">CIMA</span><span class="et-cima-sub">Construcción Industrializada<br>y Montaje Ágil</span></div><div class="et-proy">'+esc(proyecto)+'</div></div></div>';
+  }
+
+  function imprimirEtiquetas(){
+    const seleccionados=obtenerGruposSeleccionados();if(!seleccionados.length){alert('Selecciona al menos un grupo.');return;}
+    const area=document.getElementById('area-impresion');let html='',seq=1;
+    const proyecto=document.getElementById('cfg-proyecto').value.trim()||'Proyecto';const datosHistorial=[];
+    seleccionados.forEach(o=>{const g=o.grupo;for(let k=1;k<=g.cantEmpacar;k++)html+=generarHtmlEtiqueta(g,k,g.cantEmpacar,seq);datosHistorial.push({proyecto,grupo:g.nombre,kits:g.cantEmpacar});gruposImpresos[o.idx]=true;seq++;});
+    area.innerHTML=html;
+    const imgs=area.querySelectorAll('img');let cargadas=0;const totalImg=imgs.length;
+    function lanzar(){
+      setTimeout(()=>{
+        window.print();
+        // Registrar en backend vía API
+        llamarAPI('registrarImpresion', datosHistorial).then(r=>console.log('Historial:',r)).catch(e=>console.warn('Error historial:',e));
+        const totalImp=seleccionados.reduce((s,o)=>s+o.grupo.cantEmpacar,0);
+        document.getElementById('estado-impresion').classList.remove('hidden');
+        document.getElementById('estado-impresion-texto').textContent='Se enviaron '+totalImp+' etiquetas a la impresora y se registró en el historial.';
+        renderGrupos();construirFiltroImpresion();
+      },200);
+    }
+    if(!totalImg){lanzar();return;}
+    function chk(){cargadas++;if(cargadas>=totalImg)lanzar();}
+    imgs.forEach(img=>{if(img.complete)chk();else{img.onload=chk;img.onerror=chk;}});
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // UTILIDADES
+  // ══════════════════════════════════════════════════════════════
+  function esc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function letraColumna(i){let l='';i++;while(i>0){i--;l=String.fromCharCode(65+(i%26))+l;i=Math.floor(i/26);}return l;}
+  </script>
+</body>
+</html>
