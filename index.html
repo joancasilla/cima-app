@@ -188,7 +188,9 @@
   // ESTADO GLOBAL
   // ══════════════════════════════════════════════════════════════
   let libroExcel=null,datosHoja=[],nombresHojas=[],filaEncabezado=0;
-  let gruposKit=[],mapeoColumnas={},gruposImpresos={};
+  let gruposKit=[],mapeoColumnas={},gruposImpresos=cargarImpresos();
+    function cargarImpresos(){try{return JSON.parse(localStorage.getItem('cima_impresos')||'{}');}catch(e){return {};}}
+    function guardarImpresos(){try{localStorage.setItem('cima_impresos',JSON.stringify(gruposImpresos));}catch(e){}}
 
   const CAMPOS_REQUERIDOS=[
     {id:'codigo',label:'Código',sinonimos:['codigo','código','codigos','cod','referencia','ref','referencia interna'],requerido:false},
@@ -280,7 +282,7 @@
   }
 
   function reiniciarCarga(){
-    libroExcel=null;datosHoja=[];nombresHojas=[];gruposKit=[];gruposImpresos={};inputArchivo.value='';
+    libroExcel=null;datosHoja=[];nombresHojas=[];gruposKit=[];gruposImpresos={};guardarImpresos();inputArchivo.value='';
     document.getElementById('info-archivo').classList.add('hidden');document.getElementById('selector-hoja').classList.add('hidden');
     document.getElementById('btn-procesar').classList.add('hidden');document.getElementById('estado-impresion').classList.add('hidden');
     ['mapeo','preview','impresion'].forEach(t=>document.getElementById('tab-'+t).disabled=true);
@@ -358,7 +360,7 @@
   // ══════════════════════════════════════════════════════════════
   function renderGrupos(){
     const cont=document.getElementById('contenedor-grupos');cont.innerHTML='';
-    gruposKit.forEach((g,idx)=>{const imp=gruposImpresos[idx];const card=document.createElement('div');card.className='border rounded-xl overflow-hidden '+(imp?'border-green-300 bg-green-50/30':'border-border');const header=document.createElement('button');header.className='w-full flex items-center justify-between px-4 py-3 hover:bg-gray-100 transition-colors text-left '+(imp?'bg-green-50':'bg-gray-50');const bi=imp?'<span class="text-xs font-medium bg-green-600 text-white rounded-full px-2.5 py-0.5">✓ Impreso</span>':'';header.innerHTML='<div class="flex-1 min-w-0"><span class="font-bold text-sm '+(imp?'text-green-700':'text-sems')+'">'+esc(g.nombre)+'</span><span class="text-xs text-gray-500 ml-3">'+[g.sistema,g.apartamento?'Apto '+g.apartamento:'',g.area].filter(Boolean).join(' · ')+'</span></div><div class="flex items-center gap-2 shrink-0 ml-3">'+bi+'<span class="text-xs font-medium bg-negro text-white rounded-full px-2.5 py-0.5">'+g.items.length+' mat.</span><span class="text-xs font-medium bg-sems text-white rounded-full px-2.5 py-0.5">'+g.cantEmpacar+' kits</span><svg class="w-4 h-4 text-gray-400 transform transition-transform icono-expand" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></div>';const body=document.createElement('div');body.className='hidden';body.innerHTML='<div class="px-4 py-2 bg-orange-50/60 text-xs text-gray-600 flex flex-wrap gap-x-6 gap-y-1">'+[g.edificio&&'<span><b>Edificio:</b> '+esc(g.edificio)+'</span>',g.nivel&&'<span><b>Nivel:</b> '+esc(g.nivel)+'</span>',g.sistema&&'<span><b>Sistema:</b> '+esc(g.sistema)+'</span>',g.apartamento&&'<span><b>Apto:</b> '+esc(g.apartamento)+'</span>',g.area&&'<span><b>Área:</b> '+esc(g.area)+'</span>','<span><b>Empacar:</b> '+g.cantEmpacar+' paq.</span>'].filter(Boolean).join('')+'</div><table class="w-full text-sm"><thead><tr class="bg-gray-50 text-xs text-gray-500 uppercase"><th class="px-4 py-2 text-left">#</th><th class="px-4 py-2 text-left">Código</th><th class="px-4 py-2 text-left">Material</th><th class="px-4 py-2 text-right">Cant.</th><th class="px-4 py-2 text-left">Unidad</th></tr></thead><tbody class="divide-y divide-border">'+g.items.map((it,j)=>'<tr class="hover:bg-gray-50"><td class="px-4 py-1.5 text-gray-400 text-xs">'+(j+1)+'</td><td class="px-4 py-1.5 font-mono text-xs">'+esc(it.codigo)+'</td><td class="px-4 py-1.5">'+esc(it.material)+'</td><td class="px-4 py-1.5 text-right font-medium">'+it.cantUnitaria+'</td><td class="px-4 py-1.5 text-gray-500">'+esc(it.unidad)+'</td></tr>').join('')+'</tbody></table>';header.addEventListener('click',()=>{body.classList.toggle('hidden');header.querySelector('.icono-expand').style.transform=body.classList.contains('hidden')?'':'rotate(180deg)';});card.appendChild(header);card.appendChild(body);cont.appendChild(card);});
+    gruposKit.forEach((g,idx)=>{const imp=gruposImpresos[idx];const card=document.createElement('div');card.className='border rounded-xl overflow-hidden '+(imp?'border-green-300 bg-green-50/30':'border-border');const header=document.createElement('button');header.className='w-full flex items-center justify-between px-4 py-3 hover:bg-gray-100 transition-colors text-left '+(imp?'bg-green-50':'bg-gray-50');const bi=imp?'<span class="text-xs font-medium bg-green-600 text-white rounded-full px-2.5 py-0.5">✓ Impreso</span>':'';header.innerHTML='<div class="flex-1 min-w-0"><span class="font-bold text-sm '+(imp?'text-green-700':'text-sems')+'">'+esc(g.nombre)+'</span><span class="text-xs text-gray-500 ml-3">'+[g.sistema,g.apartamento?'Apto '+g.apartamento:'',g.area].filter(Boolean).join(' · ')+'</span></div><div class="flex items-center gap-2 shrink-0 ml-3">'+bi+'<span class="text-xs font-medium bg-negro text-white rounded-full px-2.5 py-0.5">'+g.items.length+' mat.</span><span class="text-xs font-medium bg-sems text-white rounded-full px-2.5 py-0.5">'+g.cantEmpacar+' kits</span><svg class="w-4 h-4 text-gray-400 transform transition-transform icono-expand" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></div>';const body=document.createElement('div');body.className='hidden';body.innerHTML='<div class="px-4 py-2 bg-orange-50/60 text-xs text-gray-600 flex flex-wrap gap-x-6 gap-y-1">'+[g.edificio&&'<span><b>Edificio:</b> '+esc(g.edificio)+'</span>',g.nivel&&'<span><b>Nivel:</b> '+esc(g.nivel)+'</span>',g.sistema&&'<span><b>Sistema:</b> '+esc(g.sistema)+'</span>',g.apartamento&&'<span><b>Apto:</b> '+esc(g.apartamento)+'</span>',g.area&&'<span><b>Área:</b> '+esc(g.area)+'</span>','<span><b>Empacar:</b> '+g.cantEmpacar+' paq.</span>'].filter(Boolean).join('')+'</div><table class="w-full text-sm"><thead><tr class="bg-gray-50 text-xs text-gray-500 uppercase"><th class="px-4 py-2 text-left">#</th><th class="px-4 py-2 text-left">Código</th><th class="px-4 py-2 text-left">Material</th><th class="px-4 py-2 text-right">Cant.</th><th class="px-4 py-2 text-left">Unidad</th></tr></thead><tbody class="divide-y divide-border">'+g.items.map((it,j)=>'<tr class="hover:bg-gray-50"><td class="px-4 py-1.5 text-gray-400 text-xs">'+(j+1)+'</td><td class="px-4 py-1.5 font-mono text-xs">'+esc(it.codigo)+'</td><td class="px-4 py-1.5">'+esc(it.material)+'</td><td class="px-4 py-1.5 text-right font-medium">'+redondear(it.cantUnitaria)+'</td><td class="px-4 py-1.5 text-gray-500">'+esc(it.unidad)+'</td></tr>').join('')+'</tbody></table>';header.addEventListener('click',()=>{body.classList.toggle('hidden');header.querySelector('.icono-expand').style.transform=body.classList.contains('hidden')?'':'rotate(180deg)';});card.appendChild(header);card.appendChild(body);cont.appendChild(card);});
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -375,7 +377,7 @@
     const prefijo=(document.getElementById('cfg-prefijo').value.trim()||'CIMA').toUpperCase();const proyecto=document.getElementById('cfg-proyecto').value.trim()||'Proyecto';
     const limpiar=(s,n)=>String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'').substring(0,n);
     const idKit=prefijo+'-'+limpiar(grupo.nombre,8)+'-'+String(secuencia).padStart(3,'0')+'-'+String(kitNum).padStart(2,'0');
-    const detalle=grupo.items.map(it=>it.cantUnitaria+' '+it.unidad+'  |  '+it.material).join('\n');
+    const detalle=grupo.items.map(it=>redondear(it.cantUnitaria)+' '+it.unidad+'  |  '+it.material).join('\n');
     const qrTexto='ID: '+idKit+'\nKit: '+kitNum+' de '+kitTotal+'\nGrupo: '+grupo.nombre+'\nSistema: '+grupo.sistema+'\nEdificio: '+grupo.edificio+'\nNivel: '+grupo.nivel+'\nApto: '+grupo.apartamento+'\nArea: '+grupo.area+'\nEmpacar: '+kitTotal+' paquetes';
     const qrUrl='https://quickchart.io/qr?text='+encodeURIComponent(qrTexto)+'&size=240&margin=1';
     const hoy=new Date();const fecha=String(hoy.getDate()).padStart(2,'0')+'/'+String(hoy.getMonth()+1).padStart(2,'0')+'/'+hoy.getFullYear();
@@ -387,7 +389,7 @@
     const seleccionados=obtenerGruposSeleccionados();if(!seleccionados.length){alert('Selecciona al menos un grupo.');return;}
     const area=document.getElementById('area-impresion');let html='',seq=1;
     const proyecto=document.getElementById('cfg-proyecto').value.trim()||'Proyecto';const datosHistorial=[];
-    seleccionados.forEach(o=>{const g=o.grupo;for(let k=1;k<=g.cantEmpacar;k++)html+=generarHtmlEtiqueta(g,k,g.cantEmpacar,seq);datosHistorial.push({proyecto,grupo:g.nombre,kits:g.cantEmpacar});gruposImpresos[o.idx]=true;seq++;});
+    seleccionados.forEach(o=>{const g=o.grupo;for(let k=1;k<=g.cantEmpacar;k++)html+=generarHtmlEtiqueta(g,k,g.cantEmpacar,seq);datosHistorial.push({proyecto,grupo:g.nombre,kits:g.cantEmpacar});gruposImpresos[o.idx]=true;seq++;});guardarImpresos();
     area.innerHTML=html;
     const imgs=area.querySelectorAll('img');let cargadas=0;const totalImg=imgs.length;
     function lanzar(){
@@ -409,6 +411,7 @@
   // ══════════════════════════════════════════════════════════════
   // UTILIDADES
   // ══════════════════════════════════════════════════════════════
+  function redondear(n){n=Number(n);if(isNaN(n))return'0';return n%1===0?String(n):n.toFixed(2).replace(/\.?0+$/,'');}
   function esc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
   function letraColumna(i){let l='';i++;while(i>0){i--;l=String.fromCharCode(65+(i%26))+l;i=Math.floor(i/26);}return l;}
   </script>
