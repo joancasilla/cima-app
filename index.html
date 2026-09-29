@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CIMA APP — SEMS Ingeniería</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📦</text></svg>">
+  <script src="config.js"></script>
+  <script src="api.js"></script>
+  <script src="vendor/qrcode.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script>
@@ -21,8 +24,35 @@
     }
   </script>
   <style>
+    .etiqueta,.etiqueta *{box-sizing:border-box;}
+    .et-nueva{padding:10px;gap:0;color:#000;border:1px solid #000;}
+    .et-nueva-cabecera{display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:2px solid #000;padding-bottom:5px;min-height:25px;flex-shrink:0;}
+    .et-nueva-cabecera b{font-size:13pt;letter-spacing:1px;line-height:1;}
+    .et-nuevo-proyecto{font-size:9pt;font-weight:bold;text-align:right;overflow-wrap:anywhere;line-height:1.15;}
+    .et-nueva-destino{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0 5px;flex-shrink:0;}
+    .et-nueva-destino small{display:block;font-size:6.5pt;font-weight:bold;letter-spacing:.5px;line-height:1.2;}
+    .et-nuevo-apto{font-size:26pt;font-weight:bold;line-height:1.05;overflow-wrap:anywhere;}
+    .et-nuevo-kit{text-align:right;white-space:nowrap;font-size:16pt;font-weight:bold;line-height:1.2;}
+    .et-nueva-fase{font-size:10pt;font-weight:bold;line-height:1.2;text-transform:uppercase;border:1px solid #000;padding:4px 6px;margin-bottom:5px;flex-shrink:0;}
+    .et-nuevo-id{font-family:Consolas,monospace;font-size:7.5pt;line-height:1.2;overflow-wrap:anywhere;padding-bottom:6px;flex-shrink:0;}
+    .et-nuevo-contenido{flex:1;min-height:0;overflow:hidden;}
+    .et-nuevo-contenido table{width:100%;border-collapse:collapse;font-size:8pt;line-height:1.15;}
+    .et-nuevo-contenido th{text-align:left;border-top:1px solid;border-bottom:1px solid;padding:4px 2px;font-size:7pt;}
+    .et-nuevo-contenido td{padding:1px 2px;border-bottom:1px solid #aaa;vertical-align:top;}
+    .et-nuevo-contenido th:nth-child(2),.et-nuevo-contenido td:nth-child(2){text-align:right;white-space:nowrap;padding-right:6px;}
+    .et-nuevo-pie{display:flex;justify-content:space-between;align-items:center;border-top:2px solid;padding-top:6px;margin-top:6px;flex-shrink:0;font-size:7pt;gap:8px;line-height:1.4;}
+    .et-nuevo-control{flex:1;min-width:0;}
+    .et-nuevo-control strong{font-size:6.5pt;letter-spacing:.4px;}
+    .et-nuevo-firma{border-bottom:1px solid #000;height:17px;margin-bottom:6px;width:90%;}
+    .et-nuevo-qr{width:90px;height:90px;display:block;}
+    .et-qr-pendiente{border:1px dashed #999;display:flex;align-items:center;justify-content:center;font-size:7pt;color:#555;}
+    .et-nuevo-qr-bloque{text-align:center;flex-shrink:0;}
+    .et-nuevo-qr-bloque span{font-size:6pt;display:block;line-height:1.1;margin-top:2px;}
+    .et-nuevo-marca{display:flex;align-items:center;gap:8px;margin-top:7px;font-size:7pt;}
+    .et-nuevo-marca img{width:53px;max-height:23px;filter:grayscale(1) contrast(2);}
     .drop-activo{background-color:#FFF5E6 !important;border-color:#F7941D !important;}
     @media screen{#area-impresion{display:none !important;}}
+    @media screen{#area-impresion.verificando{display:block !important;position:absolute;left:-10000px;top:0;}}
     @media print{
       body>*:not(#area-impresion){display:none !important;}
       #area-impresion{display:block !important;}
@@ -120,7 +150,7 @@
     <section id="vista-mapeo" class="hidden">
       <div class="bg-white rounded-xl shadow-sm border border-border p-6 max-w-4xl mx-auto">
         <h2 class="text-xl font-bold mb-1">Mapeo de columnas</h2>
-        <p class="text-sm text-gray-500 mb-5">Confirma qué columna corresponde a cada dato.</p>
+        <p class="text-sm text-gray-500 mb-5">Confirma qué columna corresponde a cada dato. Los paquetes se pueden ajustar en Kits antes de imprimir.</p>
         <div id="alerta-mapeo" class="mb-5 p-3 rounded-lg text-sm flex items-start gap-2"></div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6" id="grid-mapeo"></div>
         <details class="mb-5"><summary class="text-sm font-medium text-sems cursor-pointer hover:underline">Ver primeras filas del archivo</summary><div class="overflow-x-auto mt-2 rounded-lg border border-border max-h-56 overflow-y-auto"><table id="tabla-mini" class="w-full text-xs text-left"><thead id="thead-mini" class="bg-gray-50 text-gray-500 uppercase sticky top-0"></thead><tbody id="tbody-mini" class="divide-y divide-border"></tbody></table></div></details>
@@ -150,8 +180,8 @@
           <button onclick="cambiarTab('preview')" class="px-4 py-2 border border-border rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50">← Volver a Kits</button>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5 p-4 bg-gray-50 rounded-xl border border-border">
-          <div><label class="block text-sm font-medium text-gray-700 mb-1">Nombre del proyecto</label><input id="cfg-proyecto" type="text" value="Prado Suites PP" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sems focus:border-sems outline-none"></div>
-          <div><label class="block text-sm font-medium text-gray-700 mb-1">ID del proyecto (prefijo)</label><input id="cfg-prefijo" type="text" value="PRADO" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sems focus:border-sems outline-none"></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Nombre del proyecto</label><input id="cfg-proyecto" type="text" value="" placeholder="Nombre del proyecto" oninput="actualizarPreviewEtiqueta()" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sems focus:border-sems outline-none"></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Prefijo para plantilla anterior</label><input id="cfg-prefijo" type="text" value="CIMA" oninput="actualizarPreviewEtiqueta()" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sems focus:border-sems outline-none"></div>
         </div>
         <div class="mb-5">
           <div class="flex items-center justify-between mb-2"><span class="text-sm font-medium text-gray-700">Selecciona los grupos a imprimir:</span><div class="flex gap-2"><button onclick="seleccionarTodosGrupos(true)" class="text-xs text-sems hover:underline font-medium">Todos</button><span class="text-gray-300">|</span><button onclick="seleccionarTodosGrupos(false)" class="text-xs text-sems hover:underline font-medium">Ninguno</button></div></div>
@@ -175,14 +205,12 @@
 
   <script>
   // ══════════════════════════════════════════════════════════════
-  // CONFIGURACIÓN — EDITA ESTAS DOS CONSTANTES
+  // CONFIGURACIÓN
   // ══════════════════════════════════════════════════════════════
 
-  // 1) URL del Apps Script desplegado como Web App
-  //    Pega aquí tu URL después de hacer Deploy → Web App en Apps Script
-  const API_APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbzCFPCWb49w1aqV38QNp6cpCzNl5_SGo7EcLkkIJUg2keqe6YYRfDlh3lfbydMuOSCw/exec';
+  // La API y el dominio público se configuran en config.js.
 
-  // 2) Logo SEMS en Base64 — reemplaza con tu string real
+  // Logo para pantalla e impresión.
   const LOGO_SEMS = 'logo-sems.svg';
   // ══════════════════════════════════════════════════════════════
   // ESTADO GLOBAL
@@ -193,6 +221,8 @@
     function guardarImpresos(){try{localStorage.setItem('cima_impresos',JSON.stringify(gruposImpresos));}catch(e){}}
 
   const CAMPOS_REQUERIDOS=[
+    {id:'preempacado',label:'Código del preempacado',sinonimos:['codigo del preempacado','codigo preempacado'],requerido:false},
+    {id:'fase',label:'Fase',sinonimos:['fase'],requerido:false},
     {id:'codigo',label:'Código',sinonimos:['codigo','código','codigos','cod','referencia','ref','referencia interna'],requerido:false},
     {id:'edificio',label:'Edificio',sinonimos:['edificio','edif'],requerido:false},
     {id:'nivel',label:'Nivel',sinonimos:['nivel','piso','floor'],requerido:false},
@@ -202,25 +232,15 @@
     {id:'material',label:'Material',sinonimos:['material','descripcion','descripción','detalle'],requerido:true},
     {id:'cantidad',label:'Cantidad unitaria',sinonimos:['cantidad unitaria','cant. unitaria','cant unitaria','cantidad','cant'],requerido:true},
     {id:'unidad',label:'Unidad',sinonimos:['unidad','und','uom','um','unidad de medida'],requerido:false},
-    {id:'cantEmpacar',label:'Cantidad a empacar',sinonimos:['cantidad a empacar','cantida a empacar','cant empacar','cant. a empacar','empacar','paquetes'],requerido:true},
+    {id:'cantEmpacar',label:'Cantidad a empacar',sinonimos:['cantidad a empacar','cantida a empacar','cant empacar','cant. a empacar','empacar','paquetes'],requerido:false},
   ];
 
   // ══════════════════════════════════════════════════════════════
   // API — Comunicación con Google Apps Script
   // ══════════════════════════════════════════════════════════════
   async function llamarAPI(accion, datos) {
-    try {
-      const resp = await fetch(API_APPS_SCRIPT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ accion, datos }),
-        redirect: 'follow',
-      });
-      return await resp.json();
-    } catch (e) {
-      console.warn('Error API:', e);
-      return { error: true, mensaje: e.message };
-    }
+    try { return await CimaAPI.solicitar(accion,datos); }
+    catch(e){return {error:true,mensaje:e.message};}
   }
 
   // Verificar conexión al cargar
@@ -255,7 +275,7 @@
   // PLANTILLA
   // ══════════════════════════════════════════════════════════════
   function descargarPlantilla(){
-    const enc=CAMPOS_REQUERIDOS.map(c=>c.label);const ws=XLSX.utils.aoa_to_sheet([enc]);ws['!cols']=enc.map(h=>({wch:Math.max(h.length+4,16)}));
+    const enc=['Apto','Código del preempacado','Fase','Codigo','Descripcion','Unidad','Cantidad','Cantidad a empacar'];const ws=XLSX.utils.aoa_to_sheet([enc]);ws['!cols']=enc.map(h=>({wch:Math.max(h.length+4,16)}));
     const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Datos');XLSX.writeFile(wb,'Plantilla_Preempacado_CIMA.xlsx');
   }
 
@@ -270,6 +290,8 @@
   inputArchivo.addEventListener('change',e=>{if(e.target.files.length)manejarArchivo(e.target.files[0]);});
 
   function manejarArchivo(archivo){
+    if(imprimiendo)return;
+    reiniciarCarga();
     const ext=archivo.name.substring(archivo.name.lastIndexOf('.')).toLowerCase();
     if(!['.xlsx','.xls','.csv'].includes(ext)){alert('Formato no soportado.');return;}
     const lector=new FileReader();lector.onload=function(e){
@@ -299,16 +321,35 @@
   // ══════════════════════════════════════════════════════════════
   // TAB 2: MAPEO
   // ══════════════════════════════════════════════════════════════
-  function detectarEncabezado(){filaEncabezado=0;for(let i=0;i<Math.min(datosHoja.length,20);i++){const t=datosHoja[i].map(c=>String(c).toLowerCase().trim()).join('|');if(t.includes('material')&&(t.includes('codigo')||t.includes('código')||t.includes('codigos')||t.includes('edificio')||t.includes('cantidad')||t.includes('unidad'))){filaEncabezado=i;break;}}}
+  function normalizarEncabezado(v){return String(v??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();}
+
+  function detectarColumnas(enc){
+    const columnas={};
+    // Coincidencias completas: «Codigo» nunca debe tomar «Código del preempacado».
+    CAMPOS_REQUERIDOS.forEach(c=>{
+      const alias=c.sinonimos.map(normalizarEncabezado);
+      const i=enc.findIndex(h=>alias.includes(normalizarEncabezado(h)));
+      if(i>=0)columnas[c.id]=i;
+    });
+    return columnas;
+  }
+
+  function detectarEncabezado(){
+    filaEncabezado=0;
+    for(let i=0;i<Math.min(datosHoja.length,50);i++){
+      const c=detectarColumnas(datosHoja[i]);
+      if(c.material!==undefined&&c.cantidad!==undefined){filaEncabezado=i;return;}
+    }
+  }
 
   function construirMapeo(){
     const enc=datosHoja[filaEncabezado].map(c=>String(c).trim());mapeoColumnas={};let det=0;
-    CAMPOS_REQUERIDOS.forEach(campo=>{let idx=-1;for(let i=0;i<enc.length;i++){const h=enc[i].toLowerCase().replace(/[^a-záéíóúñü0-9\s]/g,'').trim();for(const s of campo.sinonimos){if(h===s||h.includes(s)){idx=i;break;}}if(idx>=0)break;}if(idx>=0){mapeoColumnas[campo.id]=idx;det++;}});
+    mapeoColumnas=detectarColumnas(enc);det=Object.keys(mapeoColumnas).length;
     const grid=document.getElementById('grid-mapeo');grid.innerHTML='';
     CAMPOS_REQUERIDOS.forEach(campo=>{const ci=mapeoColumnas[campo.id];const d=document.createElement('div');const l=document.createElement('label');l.className='block text-sm font-medium text-gray-700 mb-1';l.textContent=campo.label+(campo.requerido?' *':'');const s=document.createElement('select');s.id='mapeo-'+campo.id;s.className='w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-sems focus:border-sems outline-none '+(ci!==undefined?'border-green-400 bg-green-50':(campo.requerido?'border-red-300 bg-red-50':'border-gray-300'));s.onchange=actualizarMapeoDesdeUI;const ov=document.createElement('option');ov.value='-1';ov.textContent='— No asignada —';s.appendChild(ov);enc.forEach((h,i)=>{if(!h)return;const o=document.createElement('option');o.value=i;o.textContent=letraColumna(i)+': '+h;if(ci===i)o.selected=true;s.appendChild(o);});d.appendChild(l);d.appendChild(s);grid.appendChild(d);});
     const al=document.getElementById('alerta-mapeo'),tot=CAMPOS_REQUERIDOS.length;
     if(det===tot){al.className='mb-5 p-3 rounded-lg text-sm flex items-start gap-2 bg-green-50 border border-green-200 text-green-800';al.innerHTML='<span class="text-lg">✓</span> Se detectaron las '+tot+' columnas automáticamente.';}
-    else{al.className='mb-5 p-3 rounded-lg text-sm flex items-start gap-2 bg-amber-50 border border-amber-200 text-amber-800';al.innerHTML='<span class="text-lg">⚠</span> Se detectaron '+det+' de '+tot+'. Asigna las faltantes (* = obligatorio).';}
+    else{al.className='mb-5 p-3 rounded-lg text-sm flex items-start gap-2 bg-amber-50 border border-amber-200 text-amber-800';al.innerHTML='<span class="text-lg">⚠</span> Se detectaron '+det+' de '+tot+'. Revisa las asignaciones (* = obligatorio). Sin Cantidad a empacar se propone 1 paquete, editable en Kits.';}
   }
 
   function actualizarMapeoDesdeUI(){mapeoColumnas={};CAMPOS_REQUERIDOS.forEach(c=>{const v=parseInt(document.getElementById('mapeo-'+c.id).value);if(v>=0)mapeoColumnas[c.id]=v;});}
@@ -321,6 +362,25 @@
   function ejecutarAgrupacion(){
     actualizarMapeoDesdeUI();const falt=CAMPOS_REQUERIDOS.filter(c=>c.requerido&&mapeoColumnas[c.id]===undefined);
     if(falt.length){alert('Faltan campos obligatorios:\n'+falt.map(f=>'• '+f.label).join('\n'));return;}
+    const asignadas=Object.values(mapeoColumnas);
+    if(new Set(asignadas).size!==asignadas.length){alert('Una columna no puede asignarse a dos campos. Revisa el mapeo.');return;}
+    if(mapeoColumnas.preempacado!==undefined){
+      try{
+        const nuevos=agruparPreempacados(datosHoja.slice(filaEncabezado+1),mapeoColumnas,filaEncabezado+2);
+        gruposKit=nuevos;gruposImpresos={};guardarImpresos();
+        renderGrupos();
+        document.getElementById('estado-impresion').classList.add('hidden');
+        document.getElementById('tab-preview').disabled=false;
+        document.getElementById('tab-impresion').disabled=false;
+        cambiarTab('preview');
+      }catch(e){
+        gruposKit=[];gruposImpresos={};guardarImpresos();
+        ['preview','impresion'].forEach(t=>document.getElementById('tab-'+t).disabled=true);
+        alert(e.message);
+      }
+      return;
+    }
+    if(mapeoColumnas.cantEmpacar===undefined){alert('Asigna Cantidad a empacar para la plantilla anterior.');return;}
     const col=mapeoColumnas,filas=datosHoja.slice(filaEncabezado+1);gruposKit=[];gruposImpresos={};const mapaPlano={};let grupoActual=null;
 
     for(let i=0;i<filas.length;i++){
@@ -358,9 +418,54 @@
   // ══════════════════════════════════════════════════════════════
   // TAB 3: ACORDEÓN
   // ══════════════════════════════════════════════════════════════
+  function agruparPreempacados(filas,col,primeraFila=1){
+    if(col.apartamento===undefined||col.fase===undefined)throw new Error('Asigna Apto y Fase para la nueva plantilla.');
+    const grupos=new Map();
+    const valor=(f,c)=>c===undefined?'':String(f[c]??'').trim();
+    filas.forEach((fila,i)=>{
+      if(fila.every(v=>v===null||v===undefined||String(v).trim()===''))return;
+      const linea=primeraFila+i,codigo=valor(fila,col.preempacado),material=valor(fila,col.material);
+      const apartamento=valor(fila,col.apartamento),fase=valor(fila,col.fase);
+      if(!codigo||!material||!apartamento||!fase)throw new Error('Fila '+linea+': faltan código del preempacado, Apto, Fase o Descripción.');
+      const cantidad=Number(valor(fila,col.cantidad));
+      if(!valor(fila,col.cantidad)||!Number.isFinite(cantidad)||cantidad<=0)throw new Error('Fila '+linea+': la cantidad de material debe ser mayor que cero.');
+      const textoPaquetes=valor(fila,col.cantEmpacar),paquetes=textoPaquetes===''?null:Number(textoPaquetes);
+      if(paquetes!==null&&(!Number.isSafeInteger(paquetes)||paquetes<1))throw new Error('Fila '+linea+': Cantidad a empacar debe ser un entero mayor que cero.');
+      let g=grupos.get(codigo);
+      if(!g){
+        g={codigoPreempacado:codigo,nombre:codigo,apartamento,fase,edificio:valor(fila,col.edificio),nivel:valor(fila,col.nivel),sistema:valor(fila,col.sistema),area:valor(fila,col.area),cantEmpacar:null,items:[]};
+        grupos.set(codigo,g);
+      }
+      if(g.apartamento!==apartamento||g.fase!==fase)throw new Error('Fila '+linea+': '+codigo+' tiene distintos valores de Apto o Fase.');
+      if(paquetes!==null){
+        if(g.cantEmpacar!==null&&g.cantEmpacar!==paquetes)throw new Error('Fila '+linea+': '+codigo+' tiene cantidades a empacar distintas ('+g.cantEmpacar+' y '+paquetes+'). Corrige el Excel y vuelve a cargarlo.');
+        g.cantEmpacar=paquetes;
+      }
+      g.items.push({codigo:valor(fila,col.codigo),material,cantUnitaria:cantidad,unidad:valor(fila,col.unidad)});
+    });
+    if(!grupos.size)throw new Error('No se encontraron preempacados.');
+    return [...grupos.values()].map(g=>({...g,cantidadPropuesta:g.cantEmpacar===null,cantEmpacar:g.cantEmpacar??1}));
+  }
+
+  function cambiarPaquetes(idx,input){
+    const cantidad=Number(input.value);
+    if(!Number.isSafeInteger(cantidad)||cantidad<1){alert('Indica un número entero de paquetes mayor que cero.');input.value=gruposKit[idx].cantEmpacar;return;}
+    gruposKit[idx].cantEmpacar=cantidad;gruposKit[idx].cantidadPropuesta=false;
+    delete gruposImpresos[idx];guardarImpresos();renderGrupos();construirFiltroImpresion();
+    document.getElementById('estado-impresion').classList.add('hidden');
+  }
+
   function renderGrupos(){
+    const total=gruposKit.reduce((s,g)=>s+g.cantEmpacar,0),materiales=gruposKit.reduce((s,g)=>s+g.items.length,0);
+    document.getElementById('resumen-grupos').textContent=gruposKit.length+' grupos · '+materiales+' materiales · '+total+' etiquetas';
     const cont=document.getElementById('contenedor-grupos');cont.innerHTML='';
-    gruposKit.forEach((g,idx)=>{const imp=gruposImpresos[idx];const card=document.createElement('div');card.className='border rounded-xl overflow-hidden '+(imp?'border-green-300 bg-green-50/30':'border-border');const header=document.createElement('button');header.className='w-full flex items-center justify-between px-4 py-3 hover:bg-gray-100 transition-colors text-left '+(imp?'bg-green-50':'bg-gray-50');const bi=imp?'<span class="text-xs font-medium bg-green-600 text-white rounded-full px-2.5 py-0.5">✓ Impreso</span>':'';header.innerHTML='<div class="flex-1 min-w-0"><span class="font-bold text-sm '+(imp?'text-green-700':'text-sems')+'">'+esc(g.nombre)+'</span><span class="text-xs text-gray-500 ml-3">'+[g.sistema,g.apartamento?'Apto '+g.apartamento:'',g.area].filter(Boolean).join(' · ')+'</span></div><div class="flex items-center gap-2 shrink-0 ml-3">'+bi+'<span class="text-xs font-medium bg-negro text-white rounded-full px-2.5 py-0.5">'+g.items.length+' mat.</span><span class="text-xs font-medium bg-sems text-white rounded-full px-2.5 py-0.5">'+g.cantEmpacar+' kits</span><svg class="w-4 h-4 text-gray-400 transform transition-transform icono-expand" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></div>';const body=document.createElement('div');body.className='hidden';body.innerHTML='<div class="px-4 py-2 bg-orange-50/60 text-xs text-gray-600 flex flex-wrap gap-x-6 gap-y-1">'+[g.edificio&&'<span><b>Edificio:</b> '+esc(g.edificio)+'</span>',g.nivel&&'<span><b>Nivel:</b> '+esc(g.nivel)+'</span>',g.sistema&&'<span><b>Sistema:</b> '+esc(g.sistema)+'</span>',g.apartamento&&'<span><b>Apto:</b> '+esc(g.apartamento)+'</span>',g.area&&'<span><b>Área:</b> '+esc(g.area)+'</span>','<span><b>Empacar:</b> '+g.cantEmpacar+' paq.</span>'].filter(Boolean).join('')+'</div><table class="w-full text-sm"><thead><tr class="bg-gray-50 text-xs text-gray-500 uppercase"><th class="px-4 py-2 text-left">#</th><th class="px-4 py-2 text-left">Código</th><th class="px-4 py-2 text-left">Material</th><th class="px-4 py-2 text-right">Cant.</th><th class="px-4 py-2 text-left">Unidad</th></tr></thead><tbody class="divide-y divide-border">'+g.items.map((it,j)=>'<tr class="hover:bg-gray-50"><td class="px-4 py-1.5 text-gray-400 text-xs">'+(j+1)+'</td><td class="px-4 py-1.5 font-mono text-xs">'+esc(it.codigo)+'</td><td class="px-4 py-1.5">'+esc(it.material)+'</td><td class="px-4 py-1.5 text-right font-medium">'+redondear(it.cantUnitaria)+'</td><td class="px-4 py-1.5 text-gray-500">'+esc(it.unidad)+'</td></tr>').join('')+'</tbody></table>';header.addEventListener('click',()=>{body.classList.toggle('hidden');header.querySelector('.icono-expand').style.transform=body.classList.contains('hidden')?'':'rotate(180deg)';});card.appendChild(header);card.appendChild(body);cont.appendChild(card);});
+    gruposKit.forEach((g,idx)=>{const imp=gruposImpresos[idx];const card=document.createElement('div');card.className='border rounded-xl overflow-hidden '+(imp?'border-green-300 bg-green-50/30':'border-border');const header=document.createElement('button');header.className='w-full flex items-center justify-between px-4 py-3 hover:bg-gray-100 transition-colors text-left '+(imp?'bg-green-50':'bg-gray-50');const bi=imp?'<span class="text-xs font-medium bg-green-600 text-white rounded-full px-2.5 py-0.5">✓ Impreso</span>':'';header.innerHTML='<div class="flex-1 min-w-0"><span class="font-bold text-sm '+(imp?'text-green-700':'text-sems')+'">'+esc(g.nombre)+'</span><span class="text-xs text-gray-500 ml-3">'+esc([g.fase,g.sistema,g.apartamento?'Apto '+g.apartamento:'',g.area].filter(Boolean).join(' · '))+'</span></div><div class="flex items-center gap-2 shrink-0 ml-3">'+bi+'<span class="text-xs font-medium bg-negro text-white rounded-full px-2.5 py-0.5">'+g.items.length+' mat.</span><span class="text-xs font-medium bg-sems text-white rounded-full px-2.5 py-0.5">'+g.cantEmpacar+' kits</span><svg class="w-4 h-4 text-gray-400 transform transition-transform icono-expand" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg></div>';const body=document.createElement('div');body.className='hidden';body.innerHTML='<div class="px-4 py-2 bg-orange-50/60 text-xs text-gray-600 flex flex-wrap gap-x-6 gap-y-1">'+[g.edificio&&'<span><b>Edificio:</b> '+esc(g.edificio)+'</span>',g.nivel&&'<span><b>Nivel:</b> '+esc(g.nivel)+'</span>',g.sistema&&'<span><b>Sistema:</b> '+esc(g.sistema)+'</span>',g.apartamento&&'<span><b>Apto:</b> '+esc(g.apartamento)+'</span>',g.area&&'<span><b>Área:</b> '+esc(g.area)+'</span>','<span><b>Empacar:</b> '+g.cantEmpacar+' paq.</span>'].filter(Boolean).join('')+'</div><table class="w-full text-sm"><thead><tr class="bg-gray-50 text-xs text-gray-500 uppercase"><th class="px-4 py-2 text-left">#</th><th class="px-4 py-2 text-left">Código</th><th class="px-4 py-2 text-left">Material</th><th class="px-4 py-2 text-right">Cant.</th><th class="px-4 py-2 text-left">Unidad</th></tr></thead><tbody class="divide-y divide-border">'+g.items.map((it,j)=>'<tr class="hover:bg-gray-50"><td class="px-4 py-1.5 text-gray-400 text-xs">'+(j+1)+'</td><td class="px-4 py-1.5 font-mono text-xs">'+esc(it.codigo)+'</td><td class="px-4 py-1.5">'+esc(it.material)+'</td><td class="px-4 py-1.5 text-right font-medium">'+redondear(it.cantUnitaria)+'</td><td class="px-4 py-1.5 text-gray-500">'+esc(it.unidad)+'</td></tr>').join('')+'</tbody></table>';header.addEventListener('click',()=>{body.classList.toggle('hidden');header.querySelector('.icono-expand').style.transform=body.classList.contains('hidden')?'':'rotate(180deg)';});card.appendChild(header);
+      const control=document.createElement('div');control.className='px-4 py-3 flex flex-wrap items-center gap-3 border-t border-border';
+      const label=document.createElement('label');label.htmlFor='paquetes-'+idx;label.textContent='Paquetes a imprimir';label.className='text-sm font-medium';
+      const input=document.createElement('input');input.type='number';input.min='1';input.step='1';input.value=g.cantEmpacar;input.id='paquetes-'+idx;input.className='w-24 border border-gray-300 rounded-lg px-3 py-2 text-sm';input.onchange=()=>cambiarPaquetes(idx,input);
+      control.append(label,input);
+      if(g.cantidadPropuesta){const nota=document.createElement('span');nota.textContent='Sin cantidad en Excel: se propone 1. Puedes cambiarla.';nota.className='text-xs text-amber-700';control.appendChild(nota);}
+      card.appendChild(control);card.appendChild(body);cont.appendChild(card);});
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -376,36 +481,92 @@
   function generarHtmlEtiqueta(grupo,kitNum,kitTotal,secuencia){
     const prefijo=(document.getElementById('cfg-prefijo').value.trim()||'CIMA').toUpperCase();const proyecto=document.getElementById('cfg-proyecto').value.trim()||'Proyecto';
     const limpiar=(s,n)=>String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'').substring(0,n);
-    const idKit=prefijo+'-'+limpiar(grupo.nombre,8)+'-'+String(secuencia).padStart(3,'0')+'-'+String(kitNum).padStart(2,'0');
+    const idKit=grupo.codigoPreempacado||prefijo+'-'+limpiar(grupo.nombre,8)+'-'+String(secuencia).padStart(3,'0')+'-'+String(kitNum).padStart(2,'0');
     const detalle=grupo.items.map(it=>redondear(it.cantUnitaria)+' '+it.unidad+'  |  '+it.material).join('\n');
-    const qrTexto='ID: '+idKit+'\nKit: '+kitNum+' de '+kitTotal+'\nGrupo: '+grupo.nombre+'\nSistema: '+grupo.sistema+'\nEdificio: '+grupo.edificio+'\nNivel: '+grupo.nivel+'\nApto: '+grupo.apartamento+'\nArea: '+grupo.area+'\nEmpacar: '+kitTotal+' paquetes';
-    const qrUrl='https://quickchart.io/qr?text='+encodeURIComponent(qrTexto)+'&size=240&margin=1';
+    const ficha=fichasEmpaque.get(firmaEmpaque(grupo,proyecto));
+    const enlace=ficha&&ficha.guardada?enlaceEmpaque(ficha.id,kitNum):'';
+    const qrUrl=enlace?imagenQR(enlace):'';
+    const qrTag=qrUrl?'<img class="et-nuevo-qr" src="'+qrUrl+'" alt="QR para abrir el detalle del empaque">':'<div class="et-nuevo-qr et-qr-pendiente">QR disponible<br>al imprimir</div>';
     const hoy=new Date();const fecha=String(hoy.getDate()).padStart(2,'0')+'/'+String(hoy.getMonth()+1).padStart(2,'0')+'/'+hoy.getFullYear();
     const logoTag='<img src="'+LOGO_SEMS+'" alt="SEMS">';
-    return '<div class="etiqueta"><div class="et-row-id et-bord et-pad">'+esc(idKit)+'</div><div class="et-row-apto et-bord et-pad">Apto: '+esc(grupo.apartamento)+'</div><div class="et-row-area et-bord et-pad">Area: '+esc(grupo.area)+'</div><div class="et-row2 et-row-ed et-bord"><div class="et-l et-pad">Edificio: '+esc(grupo.edificio)+'</div><div class="et-r et-pad">'+esc(grupo.sistema)+'</div></div><div class="et-row2 et-row-ac et-bord"><div class="et-l et-pad">Actividad: '+esc(grupo.nombre)+'</div><div class="et-r et-pad">Nivel: '+esc(grupo.nivel)+'</div></div><div class="et-row2 et-row-kt et-bord"><div class="et-l et-pad">Kit '+kitNum+' de '+kitTotal+'</div><div class="et-r et-pad">Empacar: '+kitTotal+' paquetes</div></div><div class="et-sp"></div><div class="et-row-ti et-bord et-pad">Contenido del empaque</div><div class="et-row-co et-bord"><div class="et-det et-pad">'+esc(detalle)+'</div><div class="et-qr"><img src="'+qrUrl+'" alt="QR"></div></div><div class="et-sp"></div><div class="et-row-fe et-bord"><div class="et-l et-pad">Fecha: '+fecha+'</div><div class="et-r et-pad">Responsable:</div></div><div class="et-row-fo"><div class="et-logo">'+logoTag+'</div><div class="et-cima"><span class="et-cima-title">CIMA</span><span class="et-cima-sub">Construcción Industrializada<br>y Montaje Ágil</span></div><div class="et-proy">'+esc(proyecto)+'</div></div></div>';
+    if(grupo.codigoPreempacado){
+      return `<div class="etiqueta et-nueva">
+        <div class="et-nueva-cabecera"><b>CIMA</b><div class="et-nuevo-proyecto">${esc(proyecto)}</div></div>
+        <div class="et-nueva-destino">
+          <div><small>APARTAMENTO / TIPO</small><div class="et-nuevo-apto">${esc(grupo.apartamento)}</div></div>
+          <div class="et-nuevo-kit"><small>PAQUETE</small>${kitNum} de ${kitTotal}</div>
+        </div>
+        <div class="et-nueva-fase">${esc(grupo.fase)}</div>
+        <div class="et-nuevo-id">${esc(idKit)}</div>
+        <div class="et-nuevo-contenido"><table>
+          <thead><tr><th>CONTENIDO DEL EMPAQUE</th><th>CANT.</th><th>UND.</th></tr></thead>
+          <tbody>${grupo.items.map(it=>'<tr><td>'+esc(it.material)+'</td><td>'+redondear(it.cantUnitaria)+'</td><td>'+esc(it.unidad)+'</td></tr>').join('')}</tbody>
+        </table></div>
+        <div class="et-nuevo-pie">
+          <div class="et-nuevo-control"><strong>PREPARADO POR</strong><div class="et-nuevo-firma"></div><div>Fecha: ${fecha}</div><div class="et-nuevo-marca">${logoTag}<span>Preempacado de materiales</span></div></div>
+          <div class="et-nuevo-qr-bloque">${qrTag}<span>Escanea para ver el detalle</span></div>
+        </div>
+      </div>`;
+    }
+    return '<div class="etiqueta"><div class="et-row-id et-bord et-pad">'+esc(idKit)+'</div><div class="et-row-apto et-bord et-pad">Apto: '+esc(grupo.apartamento)+'</div><div class="et-row-area et-bord et-pad">Area: '+esc(grupo.area)+'</div><div class="et-row2 et-row-ed et-bord"><div class="et-l et-pad">Edificio: '+esc(grupo.edificio)+'</div><div class="et-r et-pad">'+esc(grupo.sistema)+'</div></div><div class="et-row2 et-row-ac et-bord"><div class="et-l et-pad">Actividad: '+esc(grupo.nombre)+'</div><div class="et-r et-pad">Nivel: '+esc(grupo.nivel)+'</div></div><div class="et-row2 et-row-kt et-bord"><div class="et-l et-pad">Kit '+kitNum+' de '+kitTotal+'</div><div class="et-r et-pad">Empacar: '+kitTotal+' paquetes</div></div><div class="et-sp"></div><div class="et-row-ti et-bord et-pad">Contenido del empaque</div><div class="et-row-co et-bord"><div class="et-det et-pad">'+esc(detalle)+'</div><div class="et-qr">'+qrTag+'</div></div><div class="et-sp"></div><div class="et-row-fe et-bord"><div class="et-l et-pad">Fecha: '+fecha+'</div><div class="et-r et-pad">Responsable:</div></div><div class="et-row-fo"><div class="et-logo">'+logoTag+'</div><div class="et-cima"><span class="et-cima-title">CIMA</span><span class="et-cima-sub">Construcción Industrializada<br>y Montaje Ágil</span></div><div class="et-proy">'+esc(proyecto)+'</div></div></div>';
   }
 
-  function imprimirEtiquetas(){
-    const seleccionados=obtenerGruposSeleccionados();if(!seleccionados.length){alert('Selecciona al menos un grupo.');return;}
-    const area=document.getElementById('area-impresion');let html='',seq=1;
-    const proyecto=document.getElementById('cfg-proyecto').value.trim()||'Proyecto';const datosHistorial=[];
-    seleccionados.forEach(o=>{const g=o.grupo;for(let k=1;k<=g.cantEmpacar;k++)html+=generarHtmlEtiqueta(g,k,g.cantEmpacar,seq);datosHistorial.push({proyecto,grupo:g.nombre,kits:g.cantEmpacar});gruposImpresos[o.idx]=true;seq++;});guardarImpresos();
-    area.innerHTML=html;
-    const imgs=area.querySelectorAll('img');let cargadas=0;const totalImg=imgs.length;
-    function lanzar(){
-      setTimeout(()=>{
-        window.print();
-        // Registrar en backend vía API
-        llamarAPI('registrarImpresion', datosHistorial).then(r=>console.log('Historial:',r)).catch(e=>console.warn('Error historial:',e));
-        const totalImp=seleccionados.reduce((s,o)=>s+o.grupo.cantEmpacar,0);
-        document.getElementById('estado-impresion').classList.remove('hidden');
-        document.getElementById('estado-impresion-texto').textContent='Se enviaron '+totalImp+' etiquetas a la impresora y se registró en el historial.';
-        renderGrupos();construirFiltroImpresion();
-      },200);
+  const fichasEmpaque=new Map(),imagenesQR=new Map();
+  let imprimiendo=false;
+  function datosEmpaque(grupo,proyecto){
+    return {proyecto,codigo:grupo.codigoPreempacado||grupo.nombre,apartamento:grupo.apartamento||'',fase:grupo.fase||grupo.area||'',kits:grupo.cantEmpacar,items:grupo.items.map(it=>({codigo:it.codigo||'',descripcion:it.material,unidad:it.unidad||'',cantidad:it.cantUnitaria}))};
+  }
+  function firmaEmpaque(grupo,proyecto){return JSON.stringify(datosEmpaque(grupo,proyecto));}
+  function enlaceEmpaque(id,numero){const url=new URL('empaque.html',CIMA_CONFIG.base);url.searchParams.set('id',id);url.searchParams.set('n',numero);return url.href;}
+  function imagenQR(enlace){
+    if(!imagenesQR.has(enlace)){const qr=qrcode(0,'M');qr.addData(enlace);qr.make();imagenesQR.set(enlace,qr.createDataURL(4,16));}
+    return imagenesQR.get(enlace);
+  }
+  async function guardarFichas(seleccionados,proyecto){
+    const pendientes=[];
+    seleccionados.forEach(o=>{
+      const firma=firmaEmpaque(o.grupo,proyecto);
+      if(!fichasEmpaque.has(firma))fichasEmpaque.set(firma,{id:crypto.randomUUID(),guardada:false});
+      const ficha=fichasEmpaque.get(firma);
+      if(!ficha.guardada&&!pendientes.some(p=>p.id===ficha.id))pendientes.push({id:ficha.id,...datosEmpaque(o.grupo,proyecto)});
+    });
+    for(let i=0;i<pendientes.length;i+=50){
+      const lote=pendientes.slice(i,i+50),r=await llamarAPI('guardarEmpaques',lote);
+      if(!r.exito||!Array.isArray(r.ids)||lote.some(f=>!r.ids.includes(f.id)))throw new Error(r.mensaje||'No se pudo confirmar el guardado de los empaques. Actualiza Code.gs antes de imprimir.');
+      lote.forEach(f=>{const {id,...datos}=f;fichasEmpaque.get(JSON.stringify(datos)).guardada=true;});
     }
-    if(!totalImg){lanzar();return;}
-    function chk(){cargadas++;if(cargadas>=totalImg)lanzar();}
-    imgs.forEach(img=>{if(img.complete)chk();else{img.onload=chk;img.onerror=chk;}});
+  }
+  function esperarImagenes(area){return Promise.all([...area.querySelectorAll('img')].map(img=>new Promise((resolve,reject)=>{
+    let timer;const terminar=()=>{clearTimeout(timer);img.onload=null;img.onerror=null;img.naturalWidth?resolve():reject(new Error('No se pudo cargar el logo o el QR. No se inició la impresión.'));};
+    timer=setTimeout(()=>{img.onload=null;img.onerror=null;reject(new Error('Tiempo agotado cargando las imágenes. Vuelve a intentar.'));},15000);
+    if(img.complete)terminar();else{img.onload=terminar;img.onerror=terminar;}
+  })));}
+  async function imprimirEtiquetas(){
+    if(imprimiendo)return;
+    const seleccionados=obtenerGruposSeleccionados();if(!seleccionados.length){alert('Selecciona al menos un grupo.');return;}
+    const proyecto=document.getElementById('cfg-proyecto').value.trim();
+    if(!proyecto){alert('Indica el nombre del proyecto antes de imprimir.');document.getElementById('cfg-proyecto').focus();return;}
+    imprimiendo=true;
+    const controles=[...document.querySelectorAll('main button,main input,main select')].map(el=>({el,disabled:el.disabled}));controles.forEach(c=>c.el.disabled=true);
+    const estado=document.getElementById('estado-impresion'),texto=document.getElementById('estado-impresion-texto'),area=document.getElementById('area-impresion');
+    estado.classList.remove('hidden');texto.textContent='Guardando el detalle de los empaques…';
+    try{
+      await guardarFichas(seleccionados,proyecto);
+      let html='',seq=1;seleccionados.forEach(o=>{for(let k=1;k<=o.grupo.cantEmpacar;k++)html+=generarHtmlEtiqueta(o.grupo,k,o.grupo.cantEmpacar,seq);seq++;});area.innerHTML=html;
+      await esperarImagenes(area);
+      area.classList.add('verificando');
+      const desbordadas=[...area.querySelectorAll('.et-nuevo-contenido')].some(el=>el.scrollHeight>el.clientHeight+1);
+      area.classList.remove('verificando');
+      if(desbordadas)throw new Error('Hay preempacados cuyo contenido no cabe en 4 × 6. Ajusta el contenido antes de imprimir.');
+      window.print();
+      if(!window.confirm('¿Se imprimieron correctamente las etiquetas? Aceptar registra la impresión; Cancelar permite volver a intentarlo.')){texto.textContent='Impresión sin confirmar. Puedes volver a imprimir; los enlaces ya están guardados.';return;}
+      seleccionados.forEach(o=>gruposImpresos[o.idx]=true);guardarImpresos();
+      const datos=seleccionados.map(o=>({proyecto,grupo:o.grupo.nombre,kits:o.grupo.cantEmpacar}));
+      const r=await llamarAPI('registrarImpresion',datos),total=datos.reduce((s,d)=>s+d.kits,0);
+      texto.textContent=r.exito?total+' etiquetas confirmadas. Historial guardado.':total+' etiquetas confirmadas. No se pudo guardar el historial: '+(r.mensaje||'error de conexión')+'. Los QR siguen disponibles.';
+      renderGrupos();construirFiltroImpresion();
+    }catch(e){texto.textContent=e.message;alert(e.message);}
+    finally{area.classList.remove('verificando');imprimiendo=false;controles.forEach(c=>c.el.disabled=c.disabled);}
   }
 
   // ══════════════════════════════════════════════════════════════

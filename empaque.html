@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">
+  <title>Detalle del empaque · CIMA</title>
+  <script src="config.js"></script><script src="api.js"></script>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f3f4f6;color:#17202a;font:16px/1.5 system-ui,sans-serif}header{background:#191919;color:white;padding:18px 24px;border-bottom:4px solid #f7941d}header b{color:#f7941d;font-size:22px;letter-spacing:2px}header span{float:right;font-size:13px;margin-top:6px}main{max-width:680px;margin:24px auto;padding:0 16px 40px}.card{background:white;border:1px solid #dfe3e8;border-radius:16px;padding:24px;margin-bottom:16px}h1{font-size:40px;line-height:1.1;margin:8px 0}h2{font-size:18px;margin:0 0 16px}.muted{color:#596575;font-size:14px}.destino{display:flex;align-items:center;justify-content:space-between;gap:12px}.paquete{text-align:right;font-weight:bold;font-size:23px}.fase{display:inline-block;background:#fff1df;color:#693600;padding:5px 12px;border-radius:6px;font-weight:650;margin:16px 0 8px}.codigo{font:12px/1.5 ui-monospace,monospace;overflow-wrap:anywhere}.material{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:14px 0;border-top:1px solid #e5e7eb}.material strong{font-size:15px;font-weight:600;overflow-wrap:anywhere}.cantidad{font-size:19px;font-weight:750;white-space:nowrap;text-align:right}.cantidad small{font-size:12px;display:block;color:#596575;font-weight:400}button{background:#17202a;color:white;padding:12px 18px;border:0;border-radius:8px;font:inherit;cursor:pointer}[hidden]{display:none!important}.nota{font-size:13px;color:#596575}#error{border-color:#e7b4a5}a{color:inherit}
+  </style>
+</head>
+<body>
+<header><b>CIMA</b><span>Detalle del empaque</span></header>
+<main>
+  <section id="cargando" class="card" role="status">Cargando el empaque…</section>
+  <section id="error" class="card" hidden role="alert"><h2>No pudimos abrir el empaque</h2><p id="mensaje-error"></p><button id="reintentar" type="button">Volver a intentar</button></section>
+  <article id="ficha" hidden>
+    <section class="card">
+      <div id="proyecto" class="muted"></div>
+      <div class="destino"><div><div class="muted">Apartamento / tipo</div><h1 id="apartamento"></h1></div><div class="paquete"><div class="muted">Paquete</div><span id="numero"></span></div></div>
+      <div id="fase" class="fase"></div><div id="codigo" class="codigo"></div>
+    </section>
+    <section class="card"><h2>Contenido del empaque</h2><p class="nota">Cantidades para este paquete.</p><div id="materiales"></div></section>
+    <p class="nota" id="creado"></p><p class="nota">Esta ficha conserva el contenido guardado al generar las etiquetas.</p>
+  </article>
+</main>
+<script>
+  function texto(id,valor){document.getElementById(id).textContent=valor;}
+  async function cargar(){
+    document.getElementById('cargando').hidden=false;document.getElementById('error').hidden=true;document.getElementById('ficha').hidden=true;
+    try{
+      const p=new URLSearchParams(location.search),id=p.get('id'),n=p.get('n')||'1';
+      if(!/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(id||'')||!/^\d+$/.test(n)||!Number.isSafeInteger(Number(n))||Number(n)<1)throw new Error('El enlace del empaque está incompleto o no es válido.');
+      const r=await CimaAPI.solicitar('obtenerEmpaque',{id});
+      if(!r.exito||!r.empaque)throw new Error(r.mensaje||'No se encontró este empaque.');
+      const e=r.empaque;if(Number(n)>e.kits)throw new Error('El número de paquete no corresponde a esta ficha.');
+      texto('proyecto',e.proyecto);texto('apartamento',e.apartamento||'—');texto('fase',e.fase||'Preempacado');texto('codigo',e.codigo);texto('numero',Number(n)+' de '+e.kits);
+      const lista=document.getElementById('materiales');lista.replaceChildren();
+      e.items.forEach(it=>{
+        const fila=document.createElement('div');fila.className='material';
+        const detalle=document.createElement('div'),nombre=document.createElement('strong'),codigo=document.createElement('div');nombre.textContent=it.descripcion;codigo.className='codigo muted';codigo.textContent=it.codigo;detalle.append(nombre,codigo);
+        const cantidad=document.createElement('div');cantidad.className='cantidad';cantidad.textContent=it.cantidad;const unidad=document.createElement('small');unidad.textContent=it.unidad;cantidad.appendChild(unidad);fila.append(detalle,cantidad);lista.appendChild(fila);
+      });
+      const fecha=new Date(r.creado);texto('creado',Number.isNaN(fecha.getTime())?'':'Ficha creada: '+fecha.toLocaleDateString('es'));
+      document.getElementById('ficha').hidden=false;
+    }catch(e){texto('mensaje-error',e.message);document.getElementById('error').hidden=false;}
+    finally{document.getElementById('cargando').hidden=true;}
+  }
+  document.getElementById('reintentar').addEventListener('click',cargar);cargar();
+</script>
+</body></html>
