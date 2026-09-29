@@ -221,7 +221,7 @@
     function guardarImpresos(){try{localStorage.setItem('cima_impresos',JSON.stringify(gruposImpresos));}catch(e){}}
 
   const CAMPOS_REQUERIDOS=[
-    {id:'preempacado',label:'Código del preempacado',sinonimos:['codigo del preempacado','codigo preempacado'],requerido:false},
+    {id:'preempacado',label:'Código del preempacado / Apto combinado',sinonimos:['codigo del preempacado','codigo preempacado','apto preempacado'],requerido:false},
     {id:'fase',label:'Fase',sinonimos:['fase'],requerido:false},
     {id:'codigo',label:'Código',sinonimos:['codigo','código','codigos','cod','referencia','ref','referencia interna'],requerido:false},
     {id:'edificio',label:'Edificio',sinonimos:['edificio','edif'],requerido:false},
@@ -366,7 +366,8 @@
     if(new Set(asignadas).size!==asignadas.length){alert('Una columna no puede asignarse a dos campos. Revisa el mapeo.');return;}
     if(mapeoColumnas.preempacado!==undefined){
       try{
-        const nuevos=agruparPreempacados(datosHoja.slice(filaEncabezado+1),mapeoColumnas,filaEncabezado+2);
+        const combinado=normalizarEncabezado(datosHoja[filaEncabezado][mapeoColumnas.preempacado])==='apto preempacado';
+        const nuevos=agruparPreempacados(datosHoja.slice(filaEncabezado+1),mapeoColumnas,filaEncabezado+2,combinado);
         gruposKit=nuevos;gruposImpresos={};guardarImpresos();
         renderGrupos();
         document.getElementById('estado-impresion').classList.add('hidden');
@@ -418,14 +419,14 @@
   // ══════════════════════════════════════════════════════════════
   // TAB 3: ACORDEÓN
   // ══════════════════════════════════════════════════════════════
-  function agruparPreempacados(filas,col,primeraFila=1){
-    if(col.apartamento===undefined||col.fase===undefined)throw new Error('Asigna Apto y Fase para la nueva plantilla.');
+  function agruparPreempacados(filas,col,primeraFila=1,combinado=false){
+    if((col.apartamento===undefined&&!combinado)||col.fase===undefined)throw new Error('Asigna Apto y Fase para la nueva plantilla.');
     const grupos=new Map();
     const valor=(f,c)=>c===undefined?'':String(f[c]??'').trim();
     filas.forEach((fila,i)=>{
       if(fila.every(v=>v===null||v===undefined||String(v).trim()===''))return;
       const linea=primeraFila+i,codigo=valor(fila,col.preempacado),material=valor(fila,col.material);
-      const apartamento=valor(fila,col.apartamento),fase=valor(fila,col.fase);
+      const apartamento=col.apartamento===undefined&&combinado?codigo.split('-').pop().trim():valor(fila,col.apartamento),fase=valor(fila,col.fase);
       if(!codigo||!material||!apartamento||!fase)throw new Error('Fila '+linea+': faltan código del preempacado, Apto, Fase o Descripción.');
       const cantidad=Number(valor(fila,col.cantidad));
       if(!valor(fila,col.cantidad)||!Number.isFinite(cantidad)||cantidad<=0)throw new Error('Fila '+linea+': la cantidad de material debe ser mayor que cero.');
